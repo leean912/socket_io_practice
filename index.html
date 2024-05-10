@@ -1,0 +1,155 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Socket.IO chat</title>
+    <style>
+      body {
+        margin: 0;
+        padding-bottom: 3rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      #form {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.25rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        height: 3rem;
+        box-sizing: border-box;
+        backdrop-filter: blur(10px);
+      }
+      #input {
+        border: none;
+        padding: 0 1rem;
+        flex-grow: 1;
+        border-radius: 2rem;
+        margin: 0.25rem;
+      }
+      #input:focus {
+        outline: none;
+      }
+      #form > button {
+        background: #333;
+        border: none;
+        padding: 0 1rem;
+        margin: 0.25rem;
+        border-radius: 3px;
+        outline: none;
+        color: #fff;
+      }
+
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #messages > li {
+        padding: 0.5rem 1rem;
+      }
+      #messages > li:nth-child(odd) {
+        background: #efefef;
+      }
+    </style>
+  </head>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    socket.on("connect", () => {
+      displayMessage(socket.id);
+    });
+
+     socket.on("disconnect", () => {
+      displayMessage('disconnected');
+    });
+
+    function sendMessage() {
+      console.log("sendMessage");
+      const input = document.getElementById("input");
+      preventPageRefresh();
+      socket
+        .timeout(5000)
+        .emit("chat message", input.value, (err, callback) => {
+          if (err) {
+            console.log("error sending message");
+          } else {
+            console.log(callback);
+          }
+        });
+      input.value = "";
+    }
+
+    function sendMessageToRoom() {
+      console.log("sendMessageToRoom");
+      const input = document.getElementById("input");
+      const input2 = document.getElementById("join");
+
+      preventPageRefresh();
+      socket
+        .timeout(5000)
+        .emit("room message", input.value, input2.value, (err, callback) => {
+          if (err) {
+            console.log("error sending message");
+          } else {
+            console.log(callback);
+          }
+        });
+      input.value = "";
+    }
+
+    function joinRoom() {
+      const input2 = document.getElementById("join");
+      preventPageRefresh();
+
+      socket.emit("join room", input2.value, (cb) => {
+        displayMessage(cb);
+      });
+    }
+
+    socket.on("receive message", (msg) => {
+      console.log("receive msg");
+      displayMessage(msg);
+    });
+
+    function displayMessage(msg) {
+      const item = document.createElement("li");
+      item.textContent = msg;
+      document.getElementById("messages").appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function disconnect() {
+      preventPageRefresh();
+      socket.disconnect();
+    }
+
+    function reconnect() {
+      preventPageRefresh();
+      socket.connect();
+    }
+
+    function preventPageRefresh() {
+      // const form = document.getElementById("form");
+      // form.addEventListener("submit", (e) => {
+      //   e.preventDefault();
+      // });
+    }
+  </script>
+  <body>
+    <ul id="messages"></ul>
+    <!-- <form id="form" action=""> -->
+      <input id="input" autocomplete="off" /><button onclick="sendMessage()">
+        Send
+      </button>
+      <button onclick="sendMessageToRoom()">Send to Room</button>
+      <input id="join" autocomplete="off" /><button onclick="joinRoom()">
+        Join
+      </button>
+      <button id="disconnect" onclick="disconnect()">Disconnect</button>
+      <button id="reconnect" onclick="reconnect()">Reconnect</button>
+    <!-- </form> -->
+  </body>
+</html>
